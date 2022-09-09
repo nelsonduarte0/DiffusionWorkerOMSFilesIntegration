@@ -40,19 +40,30 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                 DateTimeOffset.Now, tenantSettings.Name);
 
             BlobStorageSettings blobSettings = tenantSettings.BlobStorageSettings;
-            BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString);
-            BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
-
-            var filesList = containerClient.GetBlobs().ToArray();
-
-            foreach (BlobItem blobItem in filesList)
+            try
             {
-                FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
-                BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
-                blobClient.DownloadTo(fileStream);
-                fileStream.Close();
-                blobClient.Delete();
-                _logger.LogInformation("OMSFilesIntegration.DoAsync read file {time}", blobItem.Name);
+                BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString);
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
+
+                var filesList = containerClient.GetBlobs().ToArray();
+
+                foreach (BlobItem blobItem in filesList)
+                {
+                    FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
+                    BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
+                    blobClient.DownloadTo(fileStream);
+                    fileStream.Close();
+                    blobClient.Delete();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "OMSFilesIntegration.ProcessBlobContainer got exception processing blob container [{blobName}]",
+                    tenantSettings.Name
+                );
+                return;
             }
         }
 
