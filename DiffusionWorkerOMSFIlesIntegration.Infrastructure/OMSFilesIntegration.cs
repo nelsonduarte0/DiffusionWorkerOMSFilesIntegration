@@ -28,13 +28,13 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
 
         public async Task DoAsync()
         {
-            ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
-            ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files from continente
+            await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
+            await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files from continente
 
             return;
         }
 
-        public void ProcessBlobContainer(TenantSettings tenantSettings)
+        public async Task ProcessBlobContainer(TenantSettings tenantSettings)
         {
             _logger.LogInformation("OMSFilesIntegration.ProcessBlobContainer started at {time} for tenant {tenant}", 
                 DateTimeOffset.Now, tenantSettings.Name);
@@ -51,7 +51,7 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                 {
                     FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
                     BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
-                    blobClient.DownloadTo(fileStream);
+                    await blobClient.DownloadToAsync(fileStream);
                     fileStream.Close();
                     blobClient.Delete();
                 }
