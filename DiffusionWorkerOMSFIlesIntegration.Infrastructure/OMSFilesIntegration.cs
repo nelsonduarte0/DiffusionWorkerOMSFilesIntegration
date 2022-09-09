@@ -1,9 +1,8 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using BitoqueBaseHammer.Application.Common.Interfaces;
-using BitoqueBaseHammer.Application.Common.Interfaces.Sink;
-using BitoqueBaseHammer.Application.Domain.Enums.Process;
+using DiffusionWorkerOMSFIlesIntegration.Application;
 using DiffusionWorkerOMSFIlesIntegration.Application.Configuration;
+using DiffusionWorkerOMSFIlesIntegration.Application.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
@@ -48,7 +47,6 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
 
             foreach (BlobItem blobItem in filesList)
             {
-                _logger.LogInformation("OMSFilesIntegration.DoAsync readed file {time}", blobItem.Name);
                 FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
                 BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
                 blobClient.DownloadTo(fileStream);

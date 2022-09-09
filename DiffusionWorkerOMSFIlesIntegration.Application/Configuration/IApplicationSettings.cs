@@ -1,6 +1,4 @@
-﻿using BitoqueBaseHammer.Application.Common.Configuration;
-
-namespace DiffusionWorkerOMSFIlesIntegration.Application.Configuration
+﻿namespace DiffusionWorkerOMSFIlesIntegration.Application.Configuration
 {
     public interface IApplicationSettings
     {

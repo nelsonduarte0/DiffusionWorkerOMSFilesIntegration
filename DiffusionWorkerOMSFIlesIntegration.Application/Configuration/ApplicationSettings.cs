@@ -1,7 +1,4 @@
-﻿using BitoqueBaseHammer.Application.Common.Configuration;
-using BitoqueBaseHammer.Application.Domain.CrossReference;
-
-namespace DiffusionWorkerOMSFIlesIntegration.Application.Configuration
+﻿namespace DiffusionWorkerOMSFIlesIntegration.Application.Configuration
 {
     public class ApplicationSettings : IApplicationSettings
     {

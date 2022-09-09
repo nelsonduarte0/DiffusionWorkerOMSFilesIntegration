@@ -1,10 +1,6 @@
-using BitoqueBaseHammer.Application.Common.Interfaces;
-using BitoqueBaseHammer.Application.Common.Interfaces.Sink;
-using BitoqueBaseHammer.Infrastructure.Common.Interfaces;
-using BitoqueBaseHammer.Infrastructure.Services.RetryPolicy;
-using BitoqueBaseHammer.Infrastructure.Sinks;
 using DiffusionWorkerOMSFIlesIntegration;
 using DiffusionWorkerOMSFIlesIntegration.Application.Configuration;
+using DiffusionWorkerOMSFIlesIntegration.Application.Services.Interfaces;
 using DiffusionWorkerOMSFIlesIntegration.Infrastructure;
 
 IHost host = Host.CreateDefaultBuilder(args)
@@ -15,10 +11,6 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<IApplicationSettings>(applicationSettings);
         services.AddHostedService<Worker>();
         services.AddSingleton<IProcessHandler<string>, OMSFilesIntegration>();
-        services.AddSingleton<IRetryPolicyService, RetryPolicyService>();
-
-
-
     })
     .ConfigureAppConfiguration((hostCtx, builder) =>
     {

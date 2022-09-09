@@ -1,5 +1,5 @@
-using BitoqueBaseHammer.Application.Common.Interfaces;
 using DiffusionWorkerOMSFIlesIntegration.Application.Configuration;
+using DiffusionWorkerOMSFIlesIntegration.Application.Services.Interfaces;
 
 namespace DiffusionWorkerOMSFIlesIntegration
 {
@@ -7,7 +7,6 @@ namespace DiffusionWorkerOMSFIlesIntegration
     {
         private readonly ILogger<Worker> _logger;
         private readonly IProcessHandler<string> _handler;
-        private readonly ApplicationSettings _appSettings;
 
         public Worker(ILogger<Worker> logger, IProcessHandler<string> handler)
         {

@@ -6,13 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Domain\" />
-    <Folder Include="Services\Interfaces\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="BitoqueBaseHammer.Package" Version="1.0.34" />
-  </ItemGroup>
-
 </Project>
