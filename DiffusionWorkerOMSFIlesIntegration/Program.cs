@@ -2,6 +2,8 @@ using DiffusionWorkerOMSFIlesIntegration;
 using DiffusionWorkerOMSFIlesIntegration.Application.Configuration;
 using DiffusionWorkerOMSFIlesIntegration.Application.Services.Interfaces;
 using DiffusionWorkerOMSFIlesIntegration.Infrastructure;
+using Serilog;
+using Serilog.Events;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostCtx, services) =>
@@ -26,23 +28,9 @@ IHost host = Host.CreateDefaultBuilder(args)
         {
             builder.AddUserSecrets<Program>();
         }
-        //else
-        //{
-        //    var keyVaultEndpoint = Environment.GetEnvironmentVariable("KEYVAULT_ENDPOINT");
-
-        //    if (string.IsNullOrEmpty(keyVaultEndpoint))
-        //        throw new InvalidOperationException("Key vault not configured");
-
-
-        //    var keyVaultClient = new SecretClient(
-        //                new Uri(keyVaultEndpoint),
-        //                new DefaultAzureCredential()
-        //            );
-
-        //}
     })
-    //.UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
-    //                    .ReadFrom.Configuration(hostingContext.Configuration.GetSection("Logging"))
-    //                    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning))
+    .UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
+                        .ReadFrom.Configuration(hostingContext.Configuration.GetSection("Logging"))
+                        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning))
     .Build();
 await host.RunAsync();
