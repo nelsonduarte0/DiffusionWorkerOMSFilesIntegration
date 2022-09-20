@@ -28,12 +28,46 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
 
         public async Task DoAsync()
         {
-            await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
-            await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files from continente
+            for (int i = 0; i < _applicationSettings.Tenants.Wells.BlobStorageSettings.RetryCount; i++)
+            {
+                try
+                {
+                    await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
+                    _logger.LogError("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Finished OMS action with [{retryCount}] retries",
+                    i);
+                    break;
 
-            return;
+                } catch(Exception ex)
+                {
+                    _logger.LogError("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Got an exception [{retryCount}] retries",
+                   i);
+                    await Task.Delay(_applicationSettings.Tenants.Wells.BlobStorageSettings.RetryWaitTime);
+                }
+            }
+            for (int i = 0; i < _applicationSettings.Tenants.Continente.BlobStorageSettings.RetryCount; i++)
+            {
+                try
+                {
+                    await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files from continente
+                    _logger.LogInformation("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Finished OMS action with [{retryCount}] retries",
+                    i);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Got an exception [{retryCount}] retries",
+                   i);
+                    await Task.Delay(_applicationSettings.Tenants.Continente.BlobStorageSettings.RetryWaitTime);
+                }
+            }
+            Environment.Exit(0);
         }
 
+        /// <summary>
+        /// Downloads files from a blob storage to a local directory defined in OutputPath configuration provided by tenant settings
+        /// </summary>
+        /// <param name="tenantSettings">the tenant settings</param>
+        /// <returns></returns>
         public async Task ProcessBlobContainer(TenantSettings tenantSettings)
         {
             _logger.LogInformation("OMSFilesIntegration.ProcessBlobContainer started at {time} for tenant {tenant}", 
@@ -63,7 +97,7 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                     "OMSFilesIntegration.ProcessBlobContainer got exception processing blob container [{blobName}]",
                     tenantSettings.Name
                 );
-                return;
+                throw;
             }
         }
 

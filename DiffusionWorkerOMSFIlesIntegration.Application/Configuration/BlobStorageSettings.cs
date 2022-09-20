@@ -10,5 +10,7 @@ namespace DiffusionWorkerOMSFIlesIntegration.Application.Configuration
     {
         public string Container { get; set; }
         public string ConnectionString { get; set; }
+        public int RetryCount { get; set; }
+        public int RetryWaitTime { get; set; }
     }
 }
