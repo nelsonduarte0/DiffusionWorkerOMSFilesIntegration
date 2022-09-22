@@ -33,7 +33,7 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                 try
                 {
                     await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
-                    _logger.LogError("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Finished OMS action with [{retryCount}] retries",
+                    _logger.LogInformation("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Finished OMS action with [{retryCount}] retries",
                     i);
                     break;
 
@@ -86,6 +86,8 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                     FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
                     BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
                     await blobClient.DownloadToAsync(fileStream);
+                    _logger.LogInformation("OMSFilesIntegration.ProcessBlobContainer downloaded file {filename} at {time} for tenant {tenant} to {path}",
+                        blobItem.Name, DateTimeOffset.Now, tenantSettings.Name, tenantSettings.FileShareSettings.OutputPath);
                     fileStream.Close();
                     blobClient.Delete();
                 }

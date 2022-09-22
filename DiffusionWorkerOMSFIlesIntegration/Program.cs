@@ -16,7 +16,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureAppConfiguration((hostCtx, builder) =>
     {
-        var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "production";
         var path = Environment.CurrentDirectory;
         builder.SetBasePath(Environment.CurrentDirectory)
                .AddJsonFile($"appsettings.CrossReferences.json", optional: true, reloadOnChange: true)
@@ -24,7 +24,7 @@ IHost host = Host.CreateDefaultBuilder(args)
                .AddJsonFile($"appsettings.{environmentName ?? "production"}.json", optional: true, reloadOnChange: true)
                .AddEnvironmentVariables();
 
-        if (true)
+        if (environmentName.ToLowerInvariant().Equals("local"))
         {
             builder.AddUserSecrets<Program>();
         }
