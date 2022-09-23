@@ -1,4 +1,5 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure.Core;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using DiffusionWorkerOMSFIlesIntegration.Application;
 using DiffusionWorkerOMSFIlesIntegration.Application.Configuration;
@@ -79,17 +80,26 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                 BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString);
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
 
-                var filesList = containerClient.GetBlobs().ToArray();
+                
+                var filesList = containerClient.GetBlobsAsync();
 
-                foreach (BlobItem blobItem in filesList)
+                await foreach (BlobItem blobItem in filesList)
                 {
-                    FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
-                    BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
-                    await blobClient.DownloadToAsync(fileStream);
-                    _logger.LogInformation("OMSFilesIntegration.ProcessBlobContainer downloaded file {filename} at {time} for tenant {tenant} to {path}",
-                        blobItem.Name, DateTimeOffset.Now, tenantSettings.Name, tenantSettings.FileShareSettings.OutputPath);
-                    fileStream.Close();
-                    blobClient.Delete();
+
+                    var path = tenantSettings.FileShareSettings.OutputPath + blobItem.Name;
+                    using (var file = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+                    {
+                        BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
+                        await blobClient.DownloadToAsync(file);
+                        var blobCreatedOn = blobItem.Properties.CreatedOn;
+                        if (blobCreatedOn != null)
+                        {
+                            File.SetCreationTimeUtc(path, blobCreatedOn.Value.UtcDateTime);
+                            var fileCreationTime = File.GetCreationTime(path);
+                        }
+                        blobClient.Delete();
+                    }
+
                 }
             }
             catch (Exception ex)
