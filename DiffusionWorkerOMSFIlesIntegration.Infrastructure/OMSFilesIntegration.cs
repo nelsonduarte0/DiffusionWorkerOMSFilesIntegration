@@ -59,12 +59,10 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
             try
             {
                 var options = new BlobClientOptions();
-                options.Diagnostics.IsLoggingEnabled = false;
-                options.Diagnostics.IsTelemetryEnabled = false;
-                options.Diagnostics.IsDistributedTracingEnabled = false;
-                options.Retry.MaxRetries = 3;
-                options.Retry.Delay = TimeSpan.FromSeconds(3);
-                options.Retry.NetworkTimeout = TimeSpan.FromSeconds(60);
+                options.Retry.MaxRetries = blobSettings.MaxRetries;
+                options.Retry.Delay = TimeSpan.FromSeconds(blobSettings.DelaySeconds);
+                var a = blobSettings.NetworkTimeoutSeconds;
+                options.Retry.NetworkTimeout = TimeSpan.FromSeconds(blobSettings.NetworkTimeoutSeconds);
 
                 BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString, options);
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
