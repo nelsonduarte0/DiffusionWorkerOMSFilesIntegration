@@ -29,37 +29,18 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
 
         public async Task DoAsync()
         {
-            for (int i = 0; i < _applicationSettings.Tenants.Wells.BlobStorageSettings.RetryCount; i++)
+            try
             {
-                try
-                {
-                    await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
-                    _logger.LogInformation("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Finished OMS action with [{retryCount}] retries",
-                    i);
-                    break;
+                await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files for wells
+                await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files for continente
 
-                } catch(Exception ex)
-                {
-                    _logger.LogError("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Got an exception [{retryCount}] retries",
-                   i);
-                    await Task.Delay(_applicationSettings.Tenants.Wells.BlobStorageSettings.RetryWaitTime);
-                }
-            }
-            for (int i = 0; i < _applicationSettings.Tenants.Continente.BlobStorageSettings.RetryCount; i++)
+            } catch(Exception ex)
             {
-                try
-                {
-                    await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files from continente
-                    _logger.LogInformation("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Finished OMS action with [{retryCount}] retries",
-                    i);
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync] Got an exception [{retryCount}] retries",
-                   i);
-                    await Task.Delay(_applicationSettings.Tenants.Continente.BlobStorageSettings.RetryWaitTime);
-                }
+                _logger.LogError(
+                    ex,
+                    "[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync]: Got exception"
+                );
+                Environment.Exit(1);
             }
             Environment.Exit(0);
         }
@@ -71,13 +52,21 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
         /// <returns></returns>
         public async Task ProcessBlobContainer(TenantSettings tenantSettings)
         {
-            _logger.LogInformation("OMSFilesIntegration.ProcessBlobContainer started at {time} for tenant {tenant}", 
+            _logger.LogInformation("[OMSFilesIntegration.ProcessBlobContainer]: Started at [{time}] for tenant [{tenant}]", 
                 DateTimeOffset.Now, tenantSettings.Name);
 
             BlobStorageSettings blobSettings = tenantSettings.BlobStorageSettings;
             try
             {
-                BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString);
+                var options = new BlobClientOptions();
+                options.Diagnostics.IsLoggingEnabled = false;
+                options.Diagnostics.IsTelemetryEnabled = false;
+                options.Diagnostics.IsDistributedTracingEnabled = false;
+                options.Retry.MaxRetries = 3;
+                options.Retry.Delay = TimeSpan.FromSeconds(3);
+                options.Retry.NetworkTimeout = TimeSpan.FromSeconds(60);
+
+                BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString, options);
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
 
                 
@@ -97,7 +86,10 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                             File.SetCreationTimeUtc(path, blobCreatedOn.Value.UtcDateTime);
                             var fileCreationTime = File.GetCreationTime(path);
                         }
+                        _logger.LogInformation("[OMSFilesIntegration.ProcessBlobContainer]: Downloaded file [{filename}] at [{time}] for tenant [{tenant}] to [{path}]",
+                        blobItem.Name, DateTimeOffset.Now, tenantSettings.Name, tenantSettings.FileShareSettings.OutputPath);
                         blobClient.Delete();
+
                     }
 
                 }
@@ -106,11 +98,13 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
             {
                 _logger.LogError(
                     ex,
-                    "OMSFilesIntegration.ProcessBlobContainer got exception processing blob container [{blobName}]",
+                    "[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.ProcessBlobContainer]: Error processing blob container [{blobName}]",
                     tenantSettings.Name
                 );
                 throw;
             }
+            _logger.LogInformation("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.ProcessBlobContainer]: Finished processing blob container for tenant [{tenant}]", tenantSettings.Name);
+
         }
 
         public async Task StartProcessAsync(string process)
