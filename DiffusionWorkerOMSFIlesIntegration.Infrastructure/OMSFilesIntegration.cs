@@ -61,18 +61,15 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                 var options = new BlobClientOptions();
                 options.Retry.MaxRetries = blobSettings.MaxRetries;
                 options.Retry.Delay = TimeSpan.FromSeconds(blobSettings.DelaySeconds);
-                var a = blobSettings.NetworkTimeoutSeconds;
                 options.Retry.NetworkTimeout = TimeSpan.FromSeconds(blobSettings.NetworkTimeoutSeconds);
 
                 BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString, options);
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
-
                 
                 var filesList = containerClient.GetBlobsAsync();
 
                 await foreach (BlobItem blobItem in filesList)
                 {
-
                     var path = tenantSettings.FileShareSettings.OutputPath + blobItem.Name;
                     using (var file = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite))
                     {
@@ -87,7 +84,6 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
                         _logger.LogInformation("[OMSFilesIntegration.ProcessBlobContainer]: Downloaded file [{filename}] at [{time}] for tenant [{tenant}] to [{path}]",
                         blobItem.Name, DateTimeOffset.Now, tenantSettings.Name, tenantSettings.FileShareSettings.OutputPath);
                         blobClient.Delete();
-
                     }
 
                 }
