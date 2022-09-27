@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="BitoqueBaseHammer.Package" Version="1.0.62" />
+  </ItemGroup>
+
 </Project>

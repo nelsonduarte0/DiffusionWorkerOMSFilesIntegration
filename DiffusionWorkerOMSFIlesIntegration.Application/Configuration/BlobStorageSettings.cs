@@ -10,5 +10,9 @@ namespace DiffusionWorkerOMSFIlesIntegration.Application.Configuration
     {
         public string Container { get; set; }
         public string ConnectionString { get; set; }
+        public int MaxRetries { get; set; }
+        public int DelaySeconds { get; set; }
+
+        public int NetworkTimeoutSeconds { get; set;}
     }
 }

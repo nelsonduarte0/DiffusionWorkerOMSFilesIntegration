@@ -1,4 +1,5 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure.Core;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using DiffusionWorkerOMSFIlesIntegration.Application;
 using DiffusionWorkerOMSFIlesIntegration.Application.Configuration;
@@ -28,43 +29,76 @@ namespace DiffusionWorkerOMSFIlesIntegration.Infrastructure
 
         public async Task DoAsync()
         {
-            await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files from wells
-            await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files from continente
+            try
+            {
+                await ProcessBlobContainer(_applicationSettings.Tenants.Wells); //process files for wells
+                await ProcessBlobContainer(_applicationSettings.Tenants.Continente); //process files for continente
 
-            return;
+            } catch(Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.DoAsync]: Got exception"
+                );
+                Environment.Exit(1);
+            }
+            Environment.Exit(0);
         }
 
+        /// <summary>
+        /// Downloads files from a blob storage to a local directory defined in OutputPath configuration provided by tenant settings
+        /// </summary>
+        /// <param name="tenantSettings">the tenant settings</param>
+        /// <returns></returns>
         public async Task ProcessBlobContainer(TenantSettings tenantSettings)
         {
-            _logger.LogInformation("OMSFilesIntegration.ProcessBlobContainer started at {time} for tenant {tenant}", 
+            _logger.LogInformation("[OMSFilesIntegration.ProcessBlobContainer]: Started at [{time}] for tenant [{tenant}]", 
                 DateTimeOffset.Now, tenantSettings.Name);
 
             BlobStorageSettings blobSettings = tenantSettings.BlobStorageSettings;
             try
             {
-                BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString);
+                var options = new BlobClientOptions();
+                options.Retry.MaxRetries = blobSettings.MaxRetries;
+                options.Retry.Delay = TimeSpan.FromSeconds(blobSettings.DelaySeconds);
+                options.Retry.NetworkTimeout = TimeSpan.FromSeconds(blobSettings.NetworkTimeoutSeconds);
+
+                BlobServiceClient blobServiceClient = new BlobServiceClient(blobSettings.ConnectionString, options);
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobSettings.Container);
+                
+                var filesList = containerClient.GetBlobsAsync();
 
-                var filesList = containerClient.GetBlobs().ToArray();
-
-                foreach (BlobItem blobItem in filesList)
+                await foreach (BlobItem blobItem in filesList)
                 {
-                    FileStream fileStream = File.OpenWrite(tenantSettings.FileShareSettings.OutputPath + blobItem.Name);
-                    BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
-                    await blobClient.DownloadToAsync(fileStream);
-                    fileStream.Close();
-                    blobClient.Delete();
+                    var path = tenantSettings.FileShareSettings.OutputPath + blobItem.Name;
+                    using (var file = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+                    {
+                        BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
+                        await blobClient.DownloadToAsync(file);
+                        var blobCreatedOn = blobItem.Properties.CreatedOn;
+                        if (blobCreatedOn != null)
+                        {
+                            File.SetCreationTimeUtc(path, blobCreatedOn.Value.UtcDateTime);
+                            var fileCreationTime = File.GetCreationTime(path);
+                        }
+                        _logger.LogInformation("[OMSFilesIntegration.ProcessBlobContainer]: Downloaded file [{filename}] at [{time}] for tenant [{tenant}] to [{path}]",
+                        blobItem.Name, DateTimeOffset.Now, tenantSettings.Name, tenantSettings.FileShareSettings.OutputPath);
+                        blobClient.Delete();
+                    }
+
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "OMSFilesIntegration.ProcessBlobContainer got exception processing blob container [{blobName}]",
+                    "[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.ProcessBlobContainer]: Error processing blob container [{blobName}]",
                     tenantSettings.Name
                 );
-                return;
+                throw;
             }
+            _logger.LogInformation("[DiffusionWorkerOMSFIlesIntegration.OMSFilesIntegration.ProcessBlobContainer]: Finished processing blob container for tenant [{tenant}]", tenantSettings.Name);
+
         }
 
         public async Task StartProcessAsync(string process)
